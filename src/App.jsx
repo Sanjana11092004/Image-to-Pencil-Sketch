@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 
-// Get API base URL from environment variables with fallback
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+// Use relative URL for API calls - Vite will proxy to backend
+const API_BASE = "";
 
 export default function App() {
   // State management

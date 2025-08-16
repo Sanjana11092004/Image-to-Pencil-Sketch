@@ -16,6 +16,13 @@ export default defineConfig({
       '.replit.app',
       'af80e93c-d814-4d71-91c3-5e444022943e-00-1jf090v5nd4wb.worf.replit.dev'
     ],
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      }
+    }
   },
   preview: {
     host: '0.0.0.0',
