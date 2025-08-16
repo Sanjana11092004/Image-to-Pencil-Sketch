@@ -8,11 +8,25 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5000,
     strictPort: true,
-    allowedHosts: 'all',
+    allowedHosts: [
+      'localhost',
+      '127.0.0.1',
+      '0.0.0.0',
+      '.replit.dev',
+      '.replit.app',
+      'af80e93c-d814-4d71-91c3-5e444022943e-00-1jf090v5nd4wb.worf.replit.dev'
+    ],
   },
   preview: {
     host: '0.0.0.0',
     port: 5000,
-    allowedHosts: 'all',
+    allowedHosts: [
+      'localhost',
+      '127.0.0.1',
+      '0.0.0.0',
+      '.replit.dev',
+      '.replit.app',
+      'af80e93c-d814-4d71-91c3-5e444022943e-00-1jf090v5nd4wb.worf.replit.dev'
+    ],
   },
 })
