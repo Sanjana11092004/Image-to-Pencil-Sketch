@@ -1,0 +1,191 @@
+5) Frontend (React + Vite + Tailwind): build it step-by-step
+A. Create app & install Tailwind
+# from pencil-sketch-app/
+npm create vite@latest client -- --template react
+cd client
+npm i
+npm i -D tailwindcss postcss autoprefixer
+npx tailwindcss init -p
+
+
+tailwind.config.js
+
+export default {
+  content: ["./index.html", "./src/**/*.{js,jsx}"],
+  theme: { extend: {} },
+  plugins: [],
+};
+
+
+src/index.css
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+B. Configure API base
+
+.env (in client/)
+
+VITE_API_BASE=http://localhost:8000
+
+C. Build the UI (simple, pretty, responsive)
+
+src/App.jsx
+
+import { useState, useRef } from "react";
+
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+
+export default function App() {
+  const [file, setFile] = useState(null);
+  const [previewURL, setPreviewURL] = useState("");
+  const [resultURL, setResultURL] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const fileInputRef = useRef(null);
+
+  const onSelectFile = (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(f.type)) {
+      setError("Please choose a JPG, PNG, or WEBP image.");
+      return;
+    }
+    setError("");
+    setFile(f);
+    setPreviewURL(URL.createObjectURL(f));
+    setResultURL("");
+  };
+
+  const onConvert = async () => {
+    if (!file) return;
+    setLoading(true);
+    setError("");
+    setResultURL("");
+    try {
+      const fd = new FormData();
+      fd.append("image", file);
+      const res = await fetch(`${API_BASE}/api/convert`, {
+        method: "POST",
+        body: fd,
+      });
+      if (!res.ok) {
+        const msg = await res.json().catch(() => ({}));
+        throw new Error(msg.detail || "Conversion failed.");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      setResultURL(url);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onReset = () => {
+    setFile(null);
+    setPreviewURL("");
+    setResultURL("");
+    setError("");
+    if (fileInputRef.current) fileInputRef.current.value = null;
+  };
+
+  const onDownload = () => {
+    if (!resultURL) return;
+    const a = document.createElement("a");
+    a.href = resultURL;
+    a.download = "pencil-sketch.png";
+    a.click();
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-900 to-black text-white p-6">
+      <div className="max-w-5xl mx-auto">
+        <header className="mb-8 text-center">
+          <h1 className="text-3xl sm:text-4xl font-bold">Image ➜ Pencil Sketch</h1>
+          <p className="text-slate-300 mt-2">Upload, convert, preview, and download your sketch.</p>
+        </header>
+
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* Original */}
+          <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-5 shadow-lg">
+            <h2 className="text-xl font-semibold mb-3">Original</h2>
+
+            {!previewURL ? (
+              <label className="flex flex-col items-center justify-center border-2 border-dashed border-white/30 rounded-xl p-10 cursor-pointer hover:border-white/60 transition">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={onSelectFile}
+                />
+                <span className="text-slate-300">Click to choose an image</span>
+                <span className="text-xs text-slate-400 mt-1">JPG / PNG / WEBP, up to 10 MB</span>
+              </label>
+            ) : (
+              <img src={previewURL} alt="Original" className="w-full rounded-xl object-contain" />
+            )}
+
+            <div className="mt-4 flex gap-3">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50"
+              >
+                {previewURL ? "Change" : "Upload"}
+              </button>
+              <button
+                onClick={onReset}
+                className="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600"
+              >
+                Reset
+              </button>
+              <button
+                onClick={onConvert}
+                disabled={!file || loading}
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50"
+              >
+                {loading ? "Converting..." : "Convert to Sketch"}
+              </button>
+            </div>
+
+            {error && <p className="text-rose-300 mt-3">{error}</p>}
+          </div>
+
+          {/* Result */}
+          <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-5 shadow-lg">
+            <h2 className="text-xl font-semibold mb-3">Sketch</h2>
+            {resultURL ? (
+              <>
+                <img src={resultURL} alt="Sketch" className="w-full rounded-xl object-contain" />
+                <div className="mt-4">
+                  <button
+                    onClick={onDownload}
+                    className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500"
+                  >
+                    Download PNG
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="h-64 grid place-items-center text-slate-400 border border-white/10 rounded-xl">
+                {loading ? "Generating sketch..." : "Your sketch will appear here"}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Optional: Before/After slider could go here later */}
+        <footer className="text-center text-slate-400 mt-10">Built with React + FastAPI + OpenCV</footer>
+      </div>
+    </div>
+  );
+}
+
+
+Run frontend:
+
+npm run dev
+# Vite default: http://localhost:5173

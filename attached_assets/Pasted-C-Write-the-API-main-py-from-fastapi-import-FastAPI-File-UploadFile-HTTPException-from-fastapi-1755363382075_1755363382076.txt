@@ -1,0 +1,88 @@
+C. Write the API
+
+main.py
+
+from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse, JSONResponse
+from PIL import Image, ImageOps
+import numpy as np
+import cv2
+import io
+
+app = FastAPI(title="Pencil Sketch API", version="1.0.0")
+
+# Allow your frontend (adjust domains in prod)
+origins = [
+    "http://localhost:5173",  # Vite dev server
+    "http://127.0.0.1:5173",
+    # add your deployed frontend domain later, e.g. https://your-site.netlify.app
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+def to_sketch(pil_image: Image.Image) -> Image.Image:
+    """
+    Convert an RGB PIL image to a pencil-sketch PIL image using OpenCV.
+    """
+    # Fix orientation (EXIF) and ensure RGB
+    img = ImageOps.exif_transpose(pil_image).convert("RGB")
+
+    # (Optional) Downscale very large images for speed (max dimension 1600)
+    max_dim = 1600
+    w, h = img.size
+    if max(w, h) > max_dim:
+        scale = max_dim / float(max(w, h))
+        img = img.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
+
+    # PIL -> numpy (RGB)
+    rgb = np.array(img)
+
+    # RGB -> GRAY
+    gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+
+    # Invert + blur
+    inverted = 255 - gray
+    blurred = cv2.GaussianBlur(inverted, ksize=(21, 21), sigmaX=0, sigmaY=0)
+
+    # Color dodge: gray * 255 / (255 - blurred)
+    # scale=256 keeps brightness balanced
+    sketch = cv2.divide(gray, 255 - blurred, scale=256.0)
+
+    # Back to PIL (as single-channel -> RGB for consistent PNG)
+    sketch_rgb = cv2.cvtColor(sketch, cv2.COLOR_GRAY2RGB)
+    out_pil = Image.fromarray(sketch_rgb)
+    return out_pil
+
+@app.post("/api/convert")
+async def convert(image: UploadFile = File(...)):
+    if image.content_type not in {"image/jpeg", "image/png", "image/webp"}:
+        raise HTTPException(status_code=400, detail="Please upload a JPG, PNG, or WEBP image.")
+
+    # Limit file size (example: 10 MB)
+    content = await image.read()
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="File too large (max 10 MB).")
+
+    # Read file -> PIL
+    try:
+        pil = Image.open(io.BytesIO(content))
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid image file.")
+
+    # Process
+    result = to_sketch(pil)
+
+    # Stream back as PNG
+    buf = io.BytesIO()
+    result.save(buf, format="PNG")
+    buf.seek(0)
+    return StreamingResponse(buf, media_type="image/png")
