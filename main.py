@@ -57,7 +57,10 @@ def to_sketch(pil_image: Image.Image) -> Image.Image:
             scale = max_dim / float(max(w, h))
             new_w = int(w * scale)
             new_h = int(h * scale)
-            img = img.resize((new_w, new_h), Image.LANCZOS if hasattr(Image, 'LANCZOS') else Image.Resampling.LANCZOS)
+            try:
+                img = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+            except AttributeError:
+                img = img.resize((new_w, new_h), Image.LANCZOS)
 
         # Convert PIL image to numpy array (RGB format)
         rgb_array = np.array(img)

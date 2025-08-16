@@ -85,28 +85,45 @@ export default function App() {
       const formData = new FormData();
       formData.append("image", file);
       
+      console.log("Sending request to:", `${API_BASE}/api/convert`);
+      console.log("File details:", { name: file.name, type: file.type, size: file.size });
+      
       const response = await fetch(`${API_BASE}/api/convert`, {
         method: "POST",
         body: formData,
+        mode: 'cors',
       });
+      
+      console.log("Response status:", response.status);
+      console.log("Response headers:", Object.fromEntries(response.headers.entries()));
       
       if (!response.ok) {
         let errorMessage = "Conversion failed. Please try again.";
         try {
           const errorData = await response.json();
+          console.log("Error response:", errorData);
           errorMessage = errorData.detail || errorMessage;
-        } catch {
-          // If JSON parsing fails, use default message
+        } catch (e) {
+          console.log("Failed to parse error response:", e);
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
         }
         throw new Error(errorMessage);
       }
       
       const blob = await response.blob();
+      console.log("Received blob:", { type: blob.type, size: blob.size });
+      
+      if (blob.size === 0) {
+        throw new Error("Received empty response from server");
+      }
+      
       const url = URL.createObjectURL(blob);
+      console.log("Created blob URL:", url);
       setResultURL(url);
       
     } catch (err) {
       console.error("Conversion error:", err);
+      console.error("Error details:", err.stack);
       setError(err.message || "An unexpected error occurred during conversion.");
     } finally {
       setLoading(false);
