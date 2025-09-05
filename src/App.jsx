@@ -85,17 +85,11 @@ export default function App() {
       const formData = new FormData();
       formData.append("image", file);
       
-      console.log("Sending request to:", `${API_BASE}/api/convert`);
-      console.log("File details:", { name: file.name, type: file.type, size: file.size });
-      
       const response = await fetch(`${API_BASE}/api/convert`, {
         method: "POST",
         body: formData,
         mode: 'cors',
       });
-      
-      console.log("Response status:", response.status);
-      console.log("Response headers:", Object.fromEntries(response.headers.entries()));
       
       if (!response.ok) {
         let errorMessage = "Conversion failed. Please try again.";
