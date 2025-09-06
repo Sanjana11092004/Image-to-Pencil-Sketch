@@ -7,7 +7,7 @@ A **full-stack project** built using **React (frontend)** and **FastAPI + OpenCV
 
 ## 🖼️ Live Demo
 
-*(Add screenshots or demo GIFs here once deployed)*
+(https://sketchgenius.netlify.app/)
 
 ---
 
@@ -84,4 +84,5 @@ npm run dev
 ## 📜 License
 
 This project is licensed under the MIT License.
+
 
