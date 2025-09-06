@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 
 // Use relative URL for API calls - Vite will proxy to backend
-const API_BASE = "";
+const API_BASE = "https://sketchgenius-backend.onrender.com";
 
 export default function App() {
   // State management
